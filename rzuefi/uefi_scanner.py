@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 """
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using Rizin
 """
 
 import json
@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from uefi_r2.uefi_analyzer import (
+from rzuefi.uefi_analyzer import (
     NvramVariable,
     UefiAnalyzer,
     UefiProtocol,
@@ -343,7 +343,7 @@ class UefiScanner:
         if self._uefi_rule.strings is None:
             return True
         for string in self._uefi_rule.strings:
-            res = self._uefi_analyzer._r2.cmdj("/j {}".format(string))
+            res = self._uefi_analyzer._rz.cmdj("/j {}".format(string))
             if not res:
                 return False
         return True
@@ -354,7 +354,7 @@ class UefiScanner:
         if self._uefi_rule.wide_strings is None:
             return True
         for wide_string in self._uefi_rule.wide_strings:
-            res = self._uefi_analyzer._r2.cmdj("/wj {}".format(wide_string))
+            res = self._uefi_analyzer._rz.cmdj("/wj {}".format(wide_string))
             if not res:
                 return False
         return True
@@ -365,7 +365,7 @@ class UefiScanner:
         if self._uefi_rule.hex_strings is None:
             return True
         for hex_string in self._uefi_rule.hex_strings:
-            res = self._uefi_analyzer._r2.cmdj("/xj {}".format(hex_string))
+            res = self._uefi_analyzer._rz.cmdj("/xj {}".format(hex_string))
             if not res:
                 return False
         return True

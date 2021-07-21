@@ -18,13 +18,13 @@ clean:
 	rm -rf ./htmlcov
 
 blacken:
-	find uefi_r2 -name '*.py' -exec $(BLACK) {} \;
+	find rzuefi -name '*.py' -exec $(BLACK) {} \;
 
 check: $(PYTEST)
 	$(PYTEST)
-	$(MYPY) uefi_r2
+	$(MYPY) rzuefi
 	$(FLAKE8)
 
 pkg: $(STUBGEN)
-	$(STUBGEN) --output . --package uefi_r2
+	$(STUBGEN) --output . --package rzuefi
 	$(PYTHON) setup.py sdist bdist_wheel

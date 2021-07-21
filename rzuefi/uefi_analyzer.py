@@ -4,23 +4,24 @@
 # pylint: disable=too-few-public-methods,too-many-arguments,too-many-instance-attributes
 
 """
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using Rizin
 """
 
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
+import ctypes
 
-import r2pipe
+import rzpipe
 
-from uefi_r2.uefi_protocols import GUID_FROM_BYTES, UefiGuid
-from uefi_r2.uefi_tables import (
+from rzuefi.uefi_protocols import GUID_FROM_BYTES, UefiGuid
+from rzuefi.uefi_tables import (
     BS_PROTOCOLS_INFO_64_BIT,
     EFI_BOOT_SERVICES_64_BIT,
     EFI_PEI_SERVICES_32_BIT,
     EFI_RUNTIME_SERVICES_64_BIT,
     OFFSET_TO_SERVICE,
 )
-from uefi_r2.uefi_te import TerseExecutableError, TerseExecutableParser
+from rzuefi.uefi_te import TerseExecutableError, TerseExecutableParser
 
 
 class UefiService:
@@ -104,16 +105,14 @@ class NvramVariable:
 class UefiAnalyzer:
     """helper object to analyze the EFI binary and provide properties"""
 
-    def __init__(
-        self, image_path: Optional[str] = None, radare2home: Optional[str] = None
-    ):
+    def __init__(self, image_path: Optional[str] = None):
         """UEFI analyzer initialization"""
 
         # init r2
         if image_path:
-            self._r2 = r2pipe.open(image_path, flags=["-2"], radare2home=radare2home)
+            self._rz = rzpipe.open(image_path, flags=["-2"])
             # analyze image
-            self._r2.cmd("aaaa")
+            self._rz.cmd("aaaa")
             # init TE parser object if file have Terse Executable format
             try:
                 self._te: TerseExecutableParser = TerseExecutableParser(image_path)
@@ -163,8 +162,8 @@ class UefiAnalyzer:
     def _pei_service_args_num(self, reg: str, addr: int) -> int:
         """Get number of arguments for specified PEI service call"""
         args_num = 0
-        self._r2.cmd("s @{:#x}".format(addr))
-        res = self._r2.cmdj("pdbj")
+        self._rz.cmd("s @{:#x}".format(addr))
+        res = self._rz.cmdj("pdbj")
         if not res:
             return 0
         # find current call in block
@@ -189,28 +188,28 @@ class UefiAnalyzer:
     def info(self) -> List[Any]:
         """Get common image properties (parsed header)"""
         if self._info is None:
-            self._info = self._r2.cmdj("ij")
+            self._info = self._rz.cmdj("ij")
         return self._info
 
     @property
     def strings(self) -> List[Any]:
         """Get common image properties (strings)"""
         if self._strings is None:
-            self._strings = self._r2.cmdj("izzzj")
+            self._strings = self._rz.cmdj("izzzj")
         return self._strings
 
     @property
     def sections(self) -> List[Any]:
         """Get common image properties (sections)"""
         if self._sections is None:
-            self._sections = self._r2.cmdj("iSj")
+            self._sections = self._rz.cmdj("iSj")
         return self._sections
 
     @property
     def functions(self) -> List[Any]:
         """Get common image properties (functions)"""
         if self._functions is None:
-            self._functions = self._r2.cmdj("aflj")
+            self._functions = self._rz.cmdj("aflj")
         return self._functions
 
     def _get_insns(self) -> List[Any]:
@@ -219,8 +218,8 @@ class UefiAnalyzer:
         target_sections = [".text"]
         for section in self.sections:
             if section["name"] in target_sections:
-                self._r2.cmd("s @{:#x}".format(section["vaddr"]))
-                insns = self._r2.cmdj("pDj {:#x}".format(section["vsize"]))
+                self._rz.cmd("s @{:#x}".format(section["vaddr"]))
+                insns = self._rz.cmdj("pDj {:#x}".format(section["vsize"]))
         return insns
 
     @property
@@ -234,7 +233,7 @@ class UefiAnalyzer:
 
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             g_bs_reg = None
             for insn in func_insns["ops"]:
                 if "esil" in insn:
@@ -267,7 +266,7 @@ class UefiAnalyzer:
 
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             g_rt_reg = None
             for insn in func_insns["ops"]:
                 if "esil" in insn:
@@ -301,7 +300,7 @@ class UefiAnalyzer:
         bs_list = list()
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             insn_index = 0
             for insn in func_insns["ops"]:
                 # find "mov rax, qword [g_bs]" instruction
@@ -355,7 +354,7 @@ class UefiAnalyzer:
         bs_prot: List[UefiService] = list()
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             for insn in func_insns["ops"]:
                 if "esil" in insn:
                     esil = insn["esil"].split(",")
@@ -407,7 +406,7 @@ class UefiAnalyzer:
             return rt_list
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             insn_index = 0
             for insn in func_insns["ops"]:
                 # find "mov rax, qword [g_rt]" instruction
@@ -463,7 +462,7 @@ class UefiAnalyzer:
 
         protocols = list()
         for bs in self.boot_services_protocols:
-            block_insns = self._r2.cmdj("pdbj @{:#x}".format(bs.address))
+            block_insns = self._rz.cmdj("pdbj @{:#x}".format(bs.address))
             for insn in block_insns:
                 if "esil" in insn:
                     esil = insn["esil"].split(",")
@@ -477,8 +476,8 @@ class UefiAnalyzer:
                     if "ptr" not in insn:
                         continue
                     p_guid_addr = insn["ptr"]
-                    self._r2.cmd("s {:#x}".format(p_guid_addr))
-                    p_guid_b = bytes(self._r2.cmdj("xj 16"))
+                    self._rz.cmd("s {:#x}".format(p_guid_addr))
+                    p_guid_b = bytes(self._rz.cmdj("xj 16"))
 
                     # look up in known list
                     guid = GUID_FROM_BYTES.get(p_guid_b)
@@ -512,8 +511,8 @@ class UefiAnalyzer:
         target_sections = [".data"]
         for section in self.sections:
             if section["name"] in target_sections:
-                self._r2.cmd("s {:#x}".format(section["vaddr"]))
-                section_data = bytes(self._r2.cmdj("xj {:#d}".format(section["vsize"])))
+                self._rz.cmd("s {:#x}".format(section["vaddr"]))
+                section_data = bytes(self._rz.cmdj("xj {:#d}".format(section["vsize"])))
 
                 # find guids in section data:
                 for i in range(len(section_data) - 15):
@@ -539,13 +538,13 @@ class UefiAnalyzer:
             self._protocol_guids = self._get_protocol_guids()
         return self._protocol_guids
 
-    def r2_get_nvram_vars_64_bit(self) -> List[NvramVariable]:
+    def rz_get_nvram_vars_64_bit(self) -> List[NvramVariable]:
 
         nvram_vars = list()
         for service in self.runtime_services:
             if service.name in ["GetVariable", "SetVariable"]:
                 # disassemble 8 instructions backward
-                block_insns = self._r2.cmdj("pdj -8 @{:#x}".format(service.address))
+                block_insns = self._rz.cmdj("pdj -8 @{:#x}".format(service.address))
                 name: str = str()
                 p_guid_b: bytes = bytes()
                 for index in range(len(block_insns) - 2, -1, -1):
@@ -563,14 +562,14 @@ class UefiAnalyzer:
                         and (esil[-3] == "+")
                         and (esil[-4] == "rip")
                     ):
-                        name = self._r2.cmd("psw @{:#x}".format(ref_addr))[:-1]
+                        name = self._rz.cmd("psw @{:#x}".format(ref_addr))[:-1]
                     if (
                         (esil[-1] == "=")
                         and (esil[-2] == "rdx")
                         and (esil[-3] == "+")
                         and (esil[-4] == "rip")
                     ):
-                        p_guid_b = bytes(self._r2.cmdj("xj 16 @{:#x}".format(ref_addr)))
+                        p_guid_b = bytes(self._rz.cmdj("xj 16 @{:#x}".format(ref_addr)))
                     if not name:
                         name = "Unknown"
                     if p_guid_b:
@@ -585,7 +584,7 @@ class UefiAnalyzer:
     def nvram_vars(self) -> List[NvramVariable]:
         """Find NVRAM variables passed to GetVariable and SetVariable services"""
         if self._nvram_vars is None:
-            self._nvram_vars = self.r2_get_nvram_vars_64_bit()
+            self._nvram_vars = self.rz_get_nvram_vars_64_bit()
         return self._nvram_vars
 
     def _get_pei_services(self) -> List[UefiService]:
@@ -593,7 +592,7 @@ class UefiAnalyzer:
         pei_list: List[UefiService] = list()
         for func in self.functions:
             func_addr = func["offset"]
-            func_insns = self._r2.cmdj("pdfj @{:#x}".format(func_addr))
+            func_insns = self._rz.cmdj("pdfj @{:#x}".format(func_addr))
             for insn in func_insns["ops"]:
                 if "esil" not in insn:
                     continue
@@ -611,7 +610,7 @@ class UefiAnalyzer:
                     arg_num = self._pei_service_args_num(reg, insn["offset"])
                     if arg_num < service["arg_num"]:
                         continue
-                    # wrong addresses in r2 in case of TE
+                    # wrong addresses in rizin in case of TE
                     pei_list.append(
                         UefiService(address=insn["offset"], name=service["name"])
                     )
@@ -630,7 +629,7 @@ class UefiAnalyzer:
         for pei_service in self.pei_services:
             if pei_service.name != "LocatePpi":
                 continue
-            block_insns = self._r2.cmdj("pdj -16 @{:#x}".format(pei_service.address))
+            block_insns = self._rz.cmdj("pdj -16 @{:#x}".format(pei_service.address))
             for index in range(len(block_insns) - 1, -1, -1):
                 esil = block_insns[index]["esil"].split(",")
                 if not (esil[-1] == "-=" and esil[-2] == "esp" and esil[-3] == "4"):
@@ -640,10 +639,10 @@ class UefiAnalyzer:
                 p_guid_addr = block_insns[index]["ptr"]
                 if p_guid_addr < self._info["bin"]["baddr"]:
                     continue
-                # wrong addresses in r2 in case of TE
+                # wrong addresses in rizin in case of TE
                 p_guid_addr = self._wrong_addr(p_guid_addr)
-                self._r2.cmd("s {:#x}".format(p_guid_addr))
-                p_guid_b = bytes(self._r2.cmdj("xj 16"))
+                self._rz.cmd("s {:#x}".format(p_guid_addr))
+                p_guid_b = bytes(self._rz.cmdj("xj 16"))
                 # look up in known list
                 guid = GUID_FROM_BYTES.get(p_guid_b)
                 if not guid:
@@ -711,8 +710,8 @@ class UefiAnalyzer:
         return summary
 
     def close(self) -> None:
-        """Quits the r2 instance, releasing resources"""
-        self._r2.quit()
+        """Quits the rizin instance, releasing resources"""
+        self._rz.quit()
 
     def __exit__(self, exception_type, exception_value, traceback):
-        self._r2.quit()
+        self._rz.quit()

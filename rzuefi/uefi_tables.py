@@ -3,7 +3,7 @@
 # pylint: disable=consider-using-dict-comprehension
 
 """
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using rzuefi-analyzer
 """
 
 EFI_BOOT_SERVICES_64_BIT = {

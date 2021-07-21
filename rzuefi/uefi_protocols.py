@@ -3,7 +3,7 @@
 # pylint: disable=too-many-lines,consider-using-dict-comprehension
 
 """
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using Rizin 
 """
 
 import uuid

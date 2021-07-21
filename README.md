@@ -1,17 +1,15 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
-[![uefi_r2 CI](https://github.com/binarly-io/uefi_r2/actions/workflows/ci.yml/badge.svg)](https://github.com/binarly-io/uefi_r2/actions)
 
-# uefi_r2
+# rzuefi
 
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using Rizin
 
 # Dependencies
 
-## radare2
+## Rizin
 
 ```
-radare2 4.5.0-git 24764 @ linux-x86-64 git.4.4.0-225-g1cb18df8b
-commit: 1cb18df8b4dfd2ec98ca6697b5efb9381e1d2f40
+rizin 0.3.0-git @ linux-x86-64
 ```
 
 # Installation
@@ -25,22 +23,22 @@ python setup.py install
 ### With script
 
 ```
-./uefi_r2_analyzer.py analyze-image {image_path} -o out.json
-./uefi_r2_analyzer.py scan --rule {rule_path} {image_path}
+./rzuefi-analyzer.py analyze-image {image_path} -o out.json
+./rzuefi-analyzer.py scan --rule {rule_path} {image_path}
 ```
 
 ### From code
 
 ```python
-from uefi_r2.uefi_analyzer import UefiAnalyzer
+from rzuefi.uefi_analyzer import UefiAnalyzer
 
 ...
-summary = UefiAnalyzer.r2_get_summary(image_path, debug=True)
+summary = UefiAnalyzer.get_summary(image_path, debug=True)
 ```
 
 ```python
-from uefi_r2.uefi_analyzer import UefiAnalyzer
-from uefi_r2.uefi_scanner import UefiRule, UefiScanner
+from rzuefi.uefi_analyzer import UefiAnalyzer
+from rzuefi.uefi_scanner import UefiRule, UefiScanner
 
 ...
 uefi_analyzer = UefiAnalyzer(image_path)

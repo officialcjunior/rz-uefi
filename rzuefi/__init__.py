@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0+
 
 """
-Tools for analyzing UEFI firmware using radare2
+Tools for analyzing UEFI firmware using Rizin
 """
 
 __author__ = "yeggor"

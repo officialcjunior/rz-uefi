@@ -4,14 +4,14 @@
 #
 # pylint: disable=invalid-name,missing-module-docstring,missing-function-docstring
 
-# uefi_r2: tools for analyzing UEFI firmware using radare2
+# rzuefi: tools for analyzing UEFI firmware using Rizin
 
 import json
 import os
 
 import click
 
-from uefi_r2 import TerseExecutableParser, UefiAnalyzer, UefiRule, UefiScanner
+from rzuefi import TerseExecutableParser, UefiAnalyzer, UefiRule, UefiScanner
 
 
 @click.group()
