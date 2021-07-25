@@ -2,7 +2,11 @@
 
 # rzuefi
 
-Tools for analyzing UEFI firmware using Rizin
+rzuefi is a python package that provides tools for analyzing UEFI firmware modules using Rizin. It 
+features an analyzer and a scanner which you can use with a script as well as with Python code.
+
+This project is a fork of [uefi_r2](https://github.com/binarly-io/uefi_r2) and thanks to 
+[binarly.io](binarly.io) for this amazing tool.
 
 # Dependencies
 
@@ -33,7 +37,7 @@ python setup.py install
 from rzuefi.uefi_analyzer import UefiAnalyzer
 
 ...
-summary = UefiAnalyzer.get_summary(image_path, debug=True)
+summary = UefiAnalyzer.get_summary(image_path)
 ```
 
 ```python
